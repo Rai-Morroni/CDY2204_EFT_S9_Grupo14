@@ -1,0 +1,56 @@
+name: Deploy Cloud Native Backend to AWS
+
+on:
+  push:
+    branches:
+      - main # Se ejecuta automáticamente al hacer push a la rama main
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout del código
+        uses: actions/checkout@v3
+
+      - name: Configurar Java 17
+        uses: actions/setup-java@v3
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Compilar con Maven (CI)
+        run: mvn clean package -DskipTests
+
+      - name: Despliegue en AWS EC2 (CD)
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USERNAME }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            # 1. Crear directorio si no existe y entrar
+            mkdir -p /home/${{ secrets.EC2_USERNAME }}/app
+            cd /home/${{ secrets.EC2_USERNAME }}/app
+            
+            # 2. Clonar o actualizar el código fuente
+            if [ ! -d ".git" ]; then
+              git clone https://github.com/Rai-Morroni/CDY2204_EFT_S9_Grupo14.git .
+            else
+              git pull origin main
+            fi
+
+            # 3. Recrear el archivo .env con los secretos del entorno
+            echo "AZURE_AD_B2C_ISSUER_URI=${{ secrets.AZURE_AD_B2C_ISSUER_URI }}" > .env
+            echo "AWS_S3_BUCKET_NAME=${{ secrets.AWS_S3_BUCKET_NAME }}" >> .env
+            echo "AWS_REGION=${{ secrets.AWS_REGION }}" >> .env
+            echo "AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }}" >> .env
+            echo "AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }}" >> .env
+            echo "AWS_SESSION_TOKEN=${{ secrets.AWS_SESSION_TOKEN }}" >> .env
+            echo "ORACLE_URL=${{ secrets.ORACLE_URL }}" >> .env
+            echo "ORACLE_USER=${{ secrets.ORACLE_USER }}" >> .env
+            echo "ORACLE_PASS=${{ secrets.ORACLE_PASS }}" >> .env
+
+            # 4. Detener contenedores antiguos y levantar los nuevos
+            sudo docker-compose down
+            sudo docker-compose up --build -d
