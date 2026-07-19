@@ -15,5 +15,3 @@ CREATE TABLE guias_procesadas (
     fecha_procesamiento TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Comentario opcional para verificar la inserción inicial
--- SELECT * FROM guias_despacho;
