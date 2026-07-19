@@ -22,6 +22,8 @@ services:
       - "8080:8080"
     env_file:
       - .env
+    environment:
+      SPRING_RABBITMQ_HOST: rabbitmq
     depends_on:
       rabbitmq:
         condition: service_healthy
